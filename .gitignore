@@ -1,0 +1,7 @@
+*tags*
+*.vim
+
+*.out
+*.o
+
+src/main.cpp.bak
