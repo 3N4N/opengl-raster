@@ -20,9 +20,9 @@ istream &operator>>(istream &is, Point &point)
 void normalize(Point &point)
 {
     double r = sqrt(point.x * point.x + point.y * point.y + point.z * point.z);
-    point.x = point.x/r;
-    point.y = point.y/r;
-    point.z = point.z/r;
+    point.x /= r;
+    point.y /= r;
+    point.z /= r;
 }
 
 double dot_product(const Point &p1, const Point &p2)

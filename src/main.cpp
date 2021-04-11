@@ -143,9 +143,9 @@ int main()
             Point c3 = formulaOfRodrigues(k, axis, angle);
 
             two_d_vector rot_mat(4, vector<double>(4, 0));
-            rot_mat[0][0] = c1.x; rot_mat[0][1] = c1.y; rot_mat[0][2] = c1.z;
-            rot_mat[1][0] = c2.x; rot_mat[1][1] = c2.y; rot_mat[1][2] = c2.z;
-            rot_mat[2][0] = c3.x; rot_mat[2][1] = c3.y; rot_mat[2][2] = c3.z;
+            rot_mat[0][0] = c1.x; rot_mat[0][1] = c2.x; rot_mat[0][2] = c3.x;
+            rot_mat[1][0] = c1.y; rot_mat[1][1] = c2.y; rot_mat[1][2] = c3.y;
+            rot_mat[2][0] = c1.z; rot_mat[2][1] = c2.z; rot_mat[2][2] = c3.z;
             rot_mat[3][3] = 1;
             two_d_vector mat = multiply_matrix(S.top(), rot_mat);
             S.push(mat);
