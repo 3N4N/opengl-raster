@@ -14,6 +14,7 @@ using namespace std;
 #define RAD(t) (t * (2 * acos(0.0)) / 180.0)
 
 string nm_scenefile = "test_cases/1/scene.txt";
+string nm_stage1file = "bin/stage1.txt";
 
 typedef std::vector<std::vector<double> > two_d_vector;
 
@@ -78,11 +79,19 @@ int main()
     scenefile.open(nm_scenefile);
 
     if (!scenefile.is_open()) {
-        std::cerr << "Problem opening the input file!\n";
+        std::cerr << "Problem opening the scene file!\n";
         exit(1);
     }
 
-    cout << setprecision(3) << fixed;
+    ofstream stage1file;
+    stage1file.open(nm_stage1file);
+
+    if (!stage1file.is_open()) {
+        std::cerr << "Problem opening the stage1 file!\n";
+        exit(1);
+    }
+
+    stage1file << setprecision(3) << fixed;
 
     Point eye, look, up;
     double fovY, aspect_ratio, near, far;
@@ -91,11 +100,6 @@ int main()
     scenefile >> look;
     scenefile >> up;
     scenefile >> fovY >> aspect_ratio >> near >> far;
-
-    // cout << eye;
-    // cout << look;
-    // cout << up;
-    // cout << fovY << "," << aspect_ratio << "," << near << "," << far << "\n";
 
     two_d_vector mat_identity(4, vector<double>(4,0));
     identity_matrix(mat_identity);
@@ -113,20 +117,22 @@ int main()
             for (auto &point : points) {
                 scenefile >> point;
                 Point model = transformPoint(S.top(), point);
-                cout << model;
+                stage1file << model;
             }
-            cout << "\n";
+            stage1file << "\n";
         } else if (command == "translate") {
             two_d_vector tran_mat(4, vector<double>(4,0));
             identity_matrix(tran_mat);
             scenefile >> tran_mat[0][3] >> tran_mat[1][3] >> tran_mat[2][3];
             two_d_vector mat = multiply_matrix(S.top(), tran_mat);
+            S.pop();
             S.push(mat);
         } else if (command == "scale") {
             two_d_vector scale_mat(4, vector<double>(4,0));
             scenefile >> scale_mat[0][0] >> scale_mat[1][1] >> scale_mat[2][2];
             scale_mat[3][3] = 1;
             two_d_vector mat = multiply_matrix(S.top(), scale_mat);
+            S.pop();
             S.push(mat);
         } else if (command == "rotate") {
             double angle;
@@ -148,11 +154,13 @@ int main()
             rot_mat[2][0] = c1.z; rot_mat[2][1] = c2.z; rot_mat[2][2] = c3.z;
             rot_mat[3][3] = 1;
             two_d_vector mat = multiply_matrix(S.top(), rot_mat);
+            S.pop();
             S.push(mat);
-
-
         } else if (command == "push") {
+            two_d_vector new_mat = S.top();
+            S.push(new_mat);
         } else if (command == "pop") {
+            S.pop();
         } else if (command == "end") {
             break;
         }
