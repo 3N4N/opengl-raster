@@ -15,6 +15,7 @@ double dot_product(const Point&, const Point&);
 Point cross_product(const Point&, const Point&);
 Point multiply(const Point&, double);
 Point operator+(const Point&, const Point&);
+Point operator-(const Point&, const Point&);
 
 #endif //_POINT_H_
 

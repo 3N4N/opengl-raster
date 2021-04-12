@@ -54,3 +54,8 @@ Point operator+(const Point &l, const Point &r)
 {
     return {l.x + r.x, l.y + r.y, l.z + r.z};
 }
+
+Point operator-(const Point &l, const Point &r)
+{
+    return {l.x - r.x, l.y - r.y, l.z - r.z};
+}
