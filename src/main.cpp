@@ -15,7 +15,7 @@ using namespace std;
 
 string nm_scenefile = "test_cases/1/scene.txt";
 string nm_stage1file = "bin/stage1.txt";
-
+string nm_stage2file = "bin/stage2.txt";
 typedef std::vector<std::vector<double> > two_d_vector;
 
 void print_matrix(two_d_vector &mat)
@@ -36,33 +36,38 @@ void identity_matrix(two_d_vector &mat)
     }
 }
 
-Point transformPoint(const two_d_vector &matrix, const Point &point)
+two_d_vector multiply(const two_d_vector &matA, const two_d_vector &matB)
 {
-    Point p;
-    double w;
-
-    w = matrix[3][0]*point.x + matrix[3][1]*point.y + matrix[3][2]*point.z + matrix[3][3];
-    p.x = matrix[0][0]*point.x + matrix[0][1]*point.y + matrix[0][2]*point.z + matrix[0][3];
-    p.y = matrix[1][0]*point.x + matrix[1][1]*point.y + matrix[1][2]*point.z + matrix[1][3];
-    p.z = matrix[2][0]*point.x + matrix[2][1]*point.y + matrix[2][2]*point.z + matrix[2][3];
-
-    return p;
-}
-
-two_d_vector multiply_matrix( const two_d_vector &mat1,
-                              const two_d_vector &mat2)
-{
-    two_d_vector res(4, vector<double>(4, 0));
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
+    two_d_vector res(matA.size(), vector<double>(matB[0].size(), 0));
+    for (int i = 0; i < res.size(); i++) {
+        for (int j = 0; j < res[0].size(); j++) {
             for (int k = 0; k < 4; k++)
-                res[i][j] += mat1[i][k] * mat2[k][j];
+                res[i][j] += matA[i][k] * matB[k][j];
         }
     }
     return res;
 }
 
-Point formulaOfRodrigues(Point x, Point a, double angle) {
+Point transformPoint(const two_d_vector &matrix, const Point &point)
+{
+    Point p;
+    double w;
+
+    two_d_vector p_mat(4, vector<double>(1,0));
+    p_mat[0][0] = point.x;
+    p_mat[1][0] = point.y;
+    p_mat[2][0] = point.z;
+    p_mat[3][0] = 1;
+
+    two_d_vector res = multiply(matrix, p_mat);
+    p.x = res[0][0];// / res[3][0];
+    p.y = res[1][0];// / res[3][0];
+    p.z = res[2][0];// / res[3][0];
+
+    return p;
+}
+
+Point rodrigues(Point x, Point a, double angle) {
 
     double cost = cos(RAD(angle));
     double sint = sin(RAD(angle));
@@ -77,7 +82,6 @@ int main()
 {
     ifstream scenefile;
     scenefile.open(nm_scenefile);
-
     if (!scenefile.is_open()) {
         std::cerr << "Problem opening the scene file!\n";
         exit(1);
@@ -85,13 +89,20 @@ int main()
 
     ofstream stage1file;
     stage1file.open(nm_stage1file);
-
     if (!stage1file.is_open()) {
         std::cerr << "Problem opening the stage1 file!\n";
         exit(1);
     }
 
-    stage1file << setprecision(3) << fixed;
+    ofstream stage2file;
+    stage2file.open(nm_stage2file);
+    if (!stage2file.is_open()) {
+        std::cerr << "Problem opening the stage2 file!\n";
+        exit(1);
+    }
+
+    stage1file << setprecision(7) << fixed;
+    stage2file << setprecision(7) << fixed;
 
     Point eye, look, up;
     double fovY, aspect_ratio, near, far;
@@ -101,6 +112,24 @@ int main()
     scenefile >> up;
     scenefile >> fovY >> aspect_ratio >> near >> far;
 
+    Point l = (look - eye);
+    normalize(l);
+    Point r = cross_product(l, up);
+    normalize(r);
+    Point u = cross_product(r, l);
+
+    two_d_vector T(4, vector<double>(4,0));
+    identity_matrix(T);
+    T[0][3] = -eye.x;
+    T[1][3] = -eye.y;
+    T[2][3] = -eye.z;
+
+    two_d_vector R(4, vector<double>(4,0));
+    R[0][0] =  r.x; R[0][1] =  r.y; R[0][2] =  r.z;
+    R[1][0] =  u.x; R[1][1] =  u.y; R[1][2] =  u.z;
+    R[2][0] = -l.x; R[2][1] = -l.y; R[2][2] = -l.z;
+
+    two_d_vector V = multiply(R, T);
     two_d_vector mat_identity(4, vector<double>(4,0));
     identity_matrix(mat_identity);
 
@@ -117,21 +146,24 @@ int main()
             for (auto &point : points) {
                 scenefile >> point;
                 Point model = transformPoint(S.top(), point);
+                Point view = transformPoint(V, model);
                 stage1file << model;
+                stage2file << view;
             }
             stage1file << "\n";
+            stage2file << "\n";
         } else if (command == "translate") {
             two_d_vector tran_mat(4, vector<double>(4,0));
             identity_matrix(tran_mat);
             scenefile >> tran_mat[0][3] >> tran_mat[1][3] >> tran_mat[2][3];
-            two_d_vector mat = multiply_matrix(S.top(), tran_mat);
+            two_d_vector mat = multiply(S.top(), tran_mat);
             S.pop();
             S.push(mat);
         } else if (command == "scale") {
             two_d_vector scale_mat(4, vector<double>(4,0));
             scenefile >> scale_mat[0][0] >> scale_mat[1][1] >> scale_mat[2][2];
             scale_mat[3][3] = 1;
-            two_d_vector mat = multiply_matrix(S.top(), scale_mat);
+            two_d_vector mat = multiply(S.top(), scale_mat);
             S.pop();
             S.push(mat);
         } else if (command == "rotate") {
@@ -144,16 +176,16 @@ int main()
             Point j; j.x = 0; j.y = 1; j.z = 0;
             Point k; k.x = 0; k.y = 0; k.z = 1;
 
-            Point c1 = formulaOfRodrigues(i, axis, angle);
-            Point c2 = formulaOfRodrigues(j, axis, angle);
-            Point c3 = formulaOfRodrigues(k, axis, angle);
+            Point c1 = rodrigues(i, axis, angle);
+            Point c2 = rodrigues(j, axis, angle);
+            Point c3 = rodrigues(k, axis, angle);
 
             two_d_vector rot_mat(4, vector<double>(4, 0));
             rot_mat[0][0] = c1.x; rot_mat[0][1] = c2.x; rot_mat[0][2] = c3.x;
             rot_mat[1][0] = c1.y; rot_mat[1][1] = c2.y; rot_mat[1][2] = c3.y;
             rot_mat[2][0] = c1.z; rot_mat[2][1] = c2.z; rot_mat[2][2] = c3.z;
             rot_mat[3][3] = 1;
-            two_d_vector mat = multiply_matrix(S.top(), rot_mat);
+            two_d_vector mat = multiply(S.top(), rot_mat);
             S.pop();
             S.push(mat);
         } else if (command == "push") {
