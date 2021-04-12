@@ -16,14 +16,18 @@ using namespace std;
 string nm_scenefile = "test_cases/1/scene.txt";
 string nm_stage1file = "bin/stage1.txt";
 string nm_stage2file = "bin/stage2.txt";
+string nm_stage3file = "bin/stage3.txt";
+
 typedef std::vector<std::vector<double> > two_d_vector;
 
-void print_matrix(two_d_vector &mat)
+void print_matrix(const two_d_vector &mat)
 {
-    cout << mat[0][0] <<" "<< mat[0][1] <<" "<< mat[0][2] <<" "<< mat[0][3] << "\n";
-    cout << mat[1][0] <<" "<< mat[1][1] <<" "<< mat[1][2] <<" "<< mat[1][3] << "\n";
-    cout << mat[2][0] <<" "<< mat[2][1] <<" "<< mat[2][2] <<" "<< mat[2][3] << "\n";
-    cout << mat[3][0] <<" "<< mat[3][1] <<" "<< mat[3][2] <<" "<< mat[3][3] << "\n";
+    for (auto &row : mat) {
+        for (auto &col : row) {
+            cout << col << " ";
+        }
+        cout << "\n";
+    }
 }
 
 void identity_matrix(two_d_vector &mat)
@@ -60,9 +64,9 @@ Point transformPoint(const two_d_vector &matrix, const Point &point)
     p_mat[3][0] = 1;
 
     two_d_vector res = multiply(matrix, p_mat);
-    p.x = res[0][0];// / res[3][0];
-    p.y = res[1][0];// / res[3][0];
-    p.z = res[2][0];// / res[3][0];
+    p.x = res[0][0] / res[3][0];
+    p.y = res[1][0] / res[3][0];
+    p.z = res[2][0] / res[3][0];
 
     return p;
 }
@@ -101,8 +105,16 @@ int main()
         exit(1);
     }
 
+    ofstream stage3file;
+    stage3file.open(nm_stage3file);
+    if (!stage3file.is_open()) {
+        std::cerr << "Problem opening the stage3 file!\n";
+        exit(1);
+    }
+
     stage1file << setprecision(7) << fixed;
     stage2file << setprecision(7) << fixed;
+    stage3file << setprecision(7) << fixed;
 
     Point eye, look, up;
     double fovY, aspect_ratio, near, far;
@@ -128,8 +140,22 @@ int main()
     R[0][0] =  r.x; R[0][1] =  r.y; R[0][2] =  r.z;
     R[1][0] =  u.x; R[1][1] =  u.y; R[1][2] =  u.z;
     R[2][0] = -l.x; R[2][1] = -l.y; R[2][2] = -l.z;
+    R[3][3] = 1;
 
     two_d_vector V = multiply(R, T);
+
+    double fovX = fovY * aspect_ratio;
+    double _t = near * tan(RAD(fovY / 2));
+    double _r = near * tan(RAD(fovX / 2));
+
+    two_d_vector P(4, vector<double>(4,0));
+    P[0][0] = near/_r;
+    P[1][1] = near/_t;
+    P[2][2] = -(far+near)/(far-near);
+    P[2][3] = -(2*far*near)/(far-near);
+    P[3][2] = -1;
+    // print_matrix(P);
+
     two_d_vector mat_identity(4, vector<double>(4,0));
     identity_matrix(mat_identity);
 
@@ -147,11 +173,14 @@ int main()
                 scenefile >> point;
                 Point model = transformPoint(S.top(), point);
                 Point view = transformPoint(V, model);
+                Point proj = transformPoint(P, view);
                 stage1file << model;
                 stage2file << view;
+                stage3file << proj;
             }
             stage1file << "\n";
             stage2file << "\n";
+            stage3file << "\n";
         } else if (command == "translate") {
             two_d_vector tran_mat(4, vector<double>(4,0));
             identity_matrix(tran_mat);
