@@ -3,6 +3,7 @@
 
 *.out
 *.o
+*.bmp
 
 bin/
 src/main.cpp.bak
