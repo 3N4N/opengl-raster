@@ -33,12 +33,12 @@ double lim_zf;
 double lim_zr;
 
 rgb_store rainbow[6] = {
-    {255,0,0},
-    {255,127,0},
-    {255,255,0},
-    {0,255,0},
-    {0,0,255},
-    {139,0,255}
+    {255,0,0},      // red
+    {255,127,0},    // orange
+    {255,255,0},    // yellow
+    {0,255,0},      // green
+    {0,0,255},      // blue
+    {139,0,255}     // violet
 };
 
 typedef std::vector<std::vector<double> > vec2d;
@@ -294,6 +294,9 @@ int main()
 
         triangles.push_back(triangle);
     }
+    /* Provided output appears to have been made from triangles
+       taken in reverse order*/
+    reverse(triangles.begin(), triangles.end());
 
     double dx = (lim_xr - lim_xl) / screen_width;
     double dy = (lim_yt - lim_yb) / screen_height;
@@ -327,7 +330,7 @@ int main()
         double X1,X2,X3;
         double min_x,max_x;
 
-        for (double _y = min_y; _y <= max_y; _y += dy) {
+        for (double _y = min_y; _y < max_y; _y += dy) {
             if (y1-y2 == 0) {
                 X2 = x2 + ((x2-x3)/(y2-y3)) * (_y - y2);
                 X3 = x3 + ((x3-x1)/(y3-y1)) * (_y - y3);
@@ -351,11 +354,11 @@ int main()
                 max_x = max(max(X1, X2), X3);
             }
 
-            min_x = (min_x <= left_x) ? left_x : floor(min_x/dx)*dx - dx/2;
+            min_x = (min_x <= left_x) ? left_x : floor(min_x/dx)*dx + dx/2;
             max_x = (max_x >= -left_x) ? -left_x : ceil(max_x/dx)*dx - dx/2;
             // cout << left_x << " " << min_x << " " << max_x << " " << dx <<"\n";
 
-            for (double _x = min_x; _x <= max_x; _x += dx) {
+            for (double _x = min_x; _x < max_x; _x += dx) {
                 image.set_pixel(screen_width/2+_x*screen_width/2,
                                 screen_height/2-_y*screen_height/2,
                                 t.color[0],t.color[1],t.color[2]);
